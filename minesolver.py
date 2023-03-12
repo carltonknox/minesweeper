@@ -1,7 +1,7 @@
 from minesweeper import minesweeper
 import random
 # random.seed(1000158)
-rows=10
+rows=15
 cols=15
 difficulty=.15
 ms = minesweeper(rows,cols,difficulty)
@@ -84,9 +84,25 @@ while(not gameover):
                     break
             if found:
                 break
-                            
-                                            
-                                    
+    #Now, prepare probability for random
+    probabilities = [[1.0]*cols for _ in range(rows)]
+    if not found:
+        for i in range(rows):
+            for j in range(cols):
+                if ms.gameboard[i][j] == "?":               
+                    for ii in range(max(0,i-2),min(rows,i+3)):
+                        for jj in range(max(0,j-2),min(cols,j+3)):
+                            if (ii==i and jj==j):
+                                continue
+                            if len(possibles[ii][jj]) > 0 and (i,j) in possibles[ii][jj][1]:
+                                if probabilities[i][j] == 1.0:
+                                    probabilities[i][j] = 0
+                                
+                                chance=possibles[ii][jj][0]/len(possibles[ii][jj][1])
+                                
+                                probabilities[i][j] = 1 - ((1-probabilities[i][j]) * (1-chance))
+                                
+                                # print("probably ",i,j,chance,probabilities[i][j])
                                     
     #last resort, just randomly select
     gameover = not any("?" in c for c in ms.gameboard)
@@ -99,9 +115,16 @@ while(not gameover):
                 if ms.gameboard[i][j] == "?":
                     guesslist.append((i,j))
         
-        guess=random.choice(guesslist)
-        print("Guessing: out of",len(guesslist),": ",guess)
-        gameover = ms.test(guess[0],guess[1]) or not any("?" in c for c in ms.gameboard)
+        best_guess = guesslist[0]
+        for g in guesslist:
+            if probabilities[g[0]][g[1]] < probabilities[best_guess[0]][best_guess[1]]:
+                best_guess = g
+        
+        # guess=random.choice(guesslist)
+        # print("Random Guess: out of",len(guesslist),":",guess,"Probability of bomb =",probabilities[guess[0]][guess[1]])
+        print("Best Guess:",best_guess,"Probability of bomb =",probabilities[best_guess[0]][best_guess[1]])
+        # gameover = ms.test(guess[0],guess[1]) or not any("?" in c for c in ms.gameboard)
+        gameover = ms.test(best_guess[0],best_guess[1]) or not any("?" in c for c in ms.gameboard)
     
 won = not any("?" in c for c in ms.gameboard) and not any("o" in c for c in ms.gameboard)
 ms.print_gameboard()
